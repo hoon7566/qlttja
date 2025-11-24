@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Bithumb Market Buy</title>
+<title>Bithumb Market Trading</title>
 
 <style>
   body {
@@ -12,13 +12,7 @@
     margin: 0;
     background: #f6f6f6;
   }
-
-  h2 {
-    margin-top: 30px;
-    font-size: 20px;
-    color: #333;
-  }
-
+  h2 { font-size: 20px; margin-top: 20px; color: #333; }
   .card {
     background: white;
     padding: 16px;
@@ -26,7 +20,6 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     margin-bottom: 25px;
   }
-
   input, select {
     width: 100%;
     padding: 14px;
@@ -34,9 +27,7 @@
     border: 1px solid #ddd;
     margin-bottom: 12px;
     font-size: 16px;
-    background: #fff;
   }
-
   button {
     width: 100%;
     padding: 14px;
@@ -45,11 +36,8 @@
     color: white;
     border: none;
     border-radius: 12px;
-    margin-top: 10px;
   }
-
   button:active { opacity: 0.7; }
-
   pre {
     padding: 16px;
     background: #1e1e1e;
@@ -57,13 +45,12 @@
     border-radius: 10px;
     white-space: pre-wrap;
     font-size: 13px;
-    overflow-x: auto;
   }
 </style>
 </head>
 <body>
 
-<h1 style="font-size:24px;">📱 Bithumb 시장가 매수</h1>
+<h1 style="font-size:24px;">📱 Bithumb 시장가 매수/매도</h1>
 
 <div class="card">
   <h2>🔐 API 설정</h2>
@@ -72,25 +59,37 @@
 </div>
 
 <div class="card">
-  <h2>🛒 시장가 매수</h2>
-
-  <label>코인 선택</label>
+  <h2>🪙 코인 선택</h2>
   <select id="orderCurrency">
     <option value="BTC">BTC</option>
     <option value="ETH">ETH</option>
     <option value="SOL">SOL</option>
   </select>
+</div>
 
-  <label>매수 수량 (코인 갯수)</label>
-  <input id="units" placeholder="예: 0.01">
+<div class="card">
+  <h2>📈 시장가 매수</h2>
+  <label>매수 코인 수량 (units)</label>
+  <input id="buyUnits" placeholder="예: 0.02">
 
   <button onclick="marketBuy()">시장가 매수 실행</button>
 
-  <pre id="orderResult"></pre>
+  <pre id="buyResult"></pre>
+</div>
+
+<div class="card">
+  <h2>📉 시장가 매도</h2>
+  <label>매도 코인 수량 (units)</label>
+  <input id="sellUnits" placeholder="예: 0.02">
+
+  <button onclick="marketSell()">시장가 매도 실행</button>
+
+  <pre id="sellResult"></pre>
 </div>
 
 
 <script>
+// ---------- 공용 함수 ----------
 function urlencode(params) {
   return Object.entries(params)
     .map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v))
@@ -125,43 +124,4 @@ async function callBithumb(endpoint, params) {
   const query = urlencode(params);
   const data = `${endpoint}\u0000${query}\u0000${nonce}`;
 
-  const hex = await hmacSHA512(apiSecret, data);
-  const apiSign = btoa(hex);
-
-  const res = await fetch("https://api.bithumb.com" + endpoint, {
-    method: "POST",
-    headers: {
-      "Api-Key": apiKey,
-      "Api-Nonce": nonce,
-      "Api-Sign": apiSign,
-      "Content-Type": "application/x-www-form-urlencoded",
-      Accept: "application/json"
-    },
-    body: query
-  });
-
-  return await res.json();
-}
-
-async function marketBuy() {
-  const coin = document.getElementById("orderCurrency").value;
-  const units = document.getElementById("units").value.trim();
-
-  if (!units) {
-    alert("매수할 코인 수량을 입력하세요.");
-    return;
-  }
-
-  const result = await callBithumb("/trade/market_buy", {
-    units,
-    order_currency: coin,
-    payment_currency: "KRW"
-  });
-
-  document.getElementById("orderResult").textContent =
-    JSON.stringify(result, null, 2);
-}
-</script>
-
-</body>
-</html>
+  c
