@@ -55,7 +55,7 @@
 <div class="card">
   <h2>🔐 API 설정</h2>
   <input id="apiKey" placeholder="API Key 입력">
-  <input id="apiSecret" placeholder="Secret Key 입력">
+  <input id="apiSecret" placeholder="API Secret 입력">
 </div>
 
 <div class="card">
@@ -69,27 +69,22 @@
 
 <div class="card">
   <h2>📈 시장가 매수</h2>
-  <label>매수 코인 수량 (units)</label>
-  <input id="buyUnits" placeholder="예: 0.02">
-
+  <input id="buyUnits" placeholder="매수 코인 수량 (예: 0.02)">
   <button onclick="marketBuy()">시장가 매수 실행</button>
-
   <pre id="buyResult"></pre>
 </div>
 
 <div class="card">
   <h2>📉 시장가 매도</h2>
-  <label>매도 코인 수량 (units)</label>
-  <input id="sellUnits" placeholder="예: 0.02">
-
+  <input id="sellUnits" placeholder="매도 코인 수량 (예: 0.02)">
   <button onclick="marketSell()">시장가 매도 실행</button>
-
   <pre id="sellResult"></pre>
 </div>
 
-
 <script>
-// ---------- 공용 함수 ----------
+// ------------------------------------------------
+// 공용 유틸 함수들
+// ------------------------------------------------
 function urlencode(params) {
   return Object.entries(params)
     .map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v))
@@ -116,12 +111,108 @@ async function hmacSHA512(secret, message) {
     .join("");
 }
 
+// ------------------------------------------------
+// API 요청 함수 — 에러를 alert로 표시하도록 수정
+// ------------------------------------------------
 async function callBithumb(endpoint, params) {
-  const apiKey = document.getElementById("apiKey").value.trim();
-  const apiSecret = document.getElementById("apiSecret").value.trim();
+  try {
+    const apiKey = document.getElementById("apiKey").value.trim();
+    const apiSecret = document.getElementById("apiSecret").value.trim();
 
-  const nonce = Date.now().toString();
-  const query = urlencode(params);
-  const data = `${endpoint}\u0000${query}\u0000${nonce}`;
+    if (!apiKey || !apiSecret) {
+      alert("API Key / Secret을 입력하세요.");
+      return null;
+    }
 
-  c
+    const nonce = Date.now().toString();
+    const query = urlencode(params);
+    const data = `${endpoint}\u0000${query}\u0000${nonce}`;
+
+    const hex = await hmacSHA512(apiSecret, data);
+    const apiSign = btoa(hex);
+
+    const res = await fetch("https://api.bithumb.com" + endpoint, {
+      method: "POST",
+      headers: {
+        "Api-Key": apiKey,
+        "Api-Nonce": nonce,
+        "Api-Sign": apiSign,
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json"
+      },
+      body: query
+    });
+
+    if (!res.ok) {
+      alert("HTTP 오류: " + res.status + " / " + res.statusText);
+      return null;
+    }
+
+    const json = await res.json();
+
+    // 빗썸 API 오류 처리
+    if (json.status !== "0000") {
+      alert("빗썸 오류: " + json.status + "\n" + JSON.stringify(json));
+      return null;
+    }
+
+    return json;
+
+  } catch (e) {
+    alert("예외 발생: " + e.message);
+    return null;
+  }
+}
+
+// ------------------------------------------------
+// 시장가 매수
+// ------------------------------------------------
+async function marketBuy() {
+  const coin = document.getElementById("orderCurrency").value;
+  const units = document.getElementById("buyUnits").value.trim();
+
+  if (!units) {
+    alert("매수할 코인 수량을 입력하세요.");
+    return;
+  }
+
+  const result = await callBithumb("/trade/market_buy", {
+    units,
+    order_currency: coin,
+    payment_currency: "KRW"
+  });
+
+  if (result) {
+    document.getElementById("buyResult").textContent =
+      JSON.stringify(result, null, 2);
+  }
+}
+
+// ------------------------------------------------
+// 시장가 매도
+// ------------------------------------------------
+async function marketSell() {
+  const coin = document.getElementById("orderCurrency").value;
+  const units = document.getElementById("sellUnits").value.trim();
+
+  if (!units) {
+    alert("매도할 코인 수량을 입력하세요.");
+    return;
+  }
+
+  const result = await callBithumb("/trade/market_sell", {
+    units,
+    order_currency: coin,
+    payment_currency: "KRW"
+  });
+
+  if (result) {
+    document.getElementById("sellResult").textContent =
+      JSON.stringify(result, null, 2);
+  }
+}
+
+</script>
+
+</body>
+</html>
