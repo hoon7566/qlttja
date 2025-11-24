@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Bithumb Mobile Trader</title>
+<title>Bithumb Mobile Market Trader</title>
 
 <style>
   body {
@@ -48,13 +48,9 @@
     margin-top: 10px;
   }
 
-  button:active {
-    opacity: 0.7;
-  }
+  button:active { opacity: 0.7; }
 
-  .secondary {
-    background: #333;
-  }
+  .secondary { background: #333; }
 
   pre {
     padding: 16px;
@@ -69,7 +65,7 @@
 </head>
 <body>
 
-<h1 style="font-size:24px;">📱 Bithumb Mobile Trader</h1>
+<h1 style="font-size:24px;">📱 Bithumb Market Trader</h1>
 
 <div class="card">
   <h2>🔐 API 설정</h2>
@@ -78,49 +74,33 @@
 </div>
 
 <div class="card">
-  <h2>💰 잔고 조회</h2>
-  <select id="balanceCurrency">
-    <option value="ALL">ALL</option>
-    <option value="BTC">BTC</option>
-    <option value="ETH">ETH</option>
-  </select>
-  <button class="secondary" onclick="getBalance()">잔고 조회</button>
-  <pre id="balanceResult"></pre>
-</div>
+  <h2>💰 시장가 주문</h2>
 
-<div class="card">
-  <h2>🛒 지정가 주문</h2>
-
-  <label>코인</label>
+  <label>코인 선택</label>
   <select id="orderCurrency">
     <option value="BTC">BTC</option>
     <option value="ETH">ETH</option>
+    <option value="SOL">SOL</option>
   </select>
 
-  <label>시장통화</label>
-  <select id="paymentCurrency">
-    <option value="KRW">KRW</option>
-    <option value="BTC">BTC</option>
-  </select>
-
-  <label>수량</label>
-  <input id="units" placeholder="예: 0.001">
-
-  <label>가격 (KRW)</label>
-  <input id="price" placeholder="예: 50000000">
-
-  <label>매매 타입</label>
+  <label>주문 타입</label>
   <select id="orderType">
-    <option value="bid">매수 (bid)</option>
-    <option value="ask">매도 (ask)</option>
+    <option value="market_buy">시장가 매수</option>
+    <option value="market_sell">시장가 매도</option>
   </select>
 
-  <button onclick="placeOrder()">주문 실행</button>
+  <label>KRW 금액 (시장가 매수 시 입력)</label>
+  <input id="krwAmount" placeholder="예: 10000 (매수 시 필수)">
+  
+  <button onclick="marketOrder()">시장가 주문 실행</button>
+
   <pre id="orderResult"></pre>
 </div>
 
-
 <script>
+// ------------------------------------
+// 공용 함수
+// ------------------------------------
 function urlencode(params) {
   return Object.entries(params)
     .map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v))
@@ -151,11 +131,6 @@ async function callBithumb(endpoint, params) {
   const apiKey = document.getElementById("apiKey").value.trim();
   const apiSecret = document.getElementById("apiSecret").value.trim();
 
-  if (!apiKey || !apiSecret) {
-    alert("API Key와 Secret을 입력하세요.");
-    return;
-  }
-
   const nonce = Date.now().toString();
   const query = urlencode(params);
   const data = `${endpoint}\u0000${query}\u0000${nonce}`;
@@ -178,28 +153,7 @@ async function callBithumb(endpoint, params) {
   return await res.json();
 }
 
-async function getBalance() {
-  const currency = document.getElementById("balanceCurrency").value;
-
-  const result = await callBithumb("/info/balance", { currency });
-  document.getElementById("balanceResult").textContent =
-    JSON.stringify(result, null, 2);
-}
-
-async function placeOrder() {
-  const params = {
-    order_currency: document.getElementById("orderCurrency").value,
-    payment_currency: document.getElementById("paymentCurrency").value,
-    units: document.getElementById("units").value.trim(),
-    price: document.getElementById("price").value.trim(),
-    type: document.getElementById("orderType").value
-  };
-
-  const result = await callBithumb("/trade/place", params);
-  document.getElementById("orderResult").textContent =
-    JSON.stringify(result, null, 2);
-}
-</script>
-
-</body>
-</html>
+// ------------------------------------
+// 보유량 조회 (시장가 매도 전용)
+// ------------------------------------
+async function getBalance(currency)
